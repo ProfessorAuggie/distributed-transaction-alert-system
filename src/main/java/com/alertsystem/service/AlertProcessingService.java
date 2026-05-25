@@ -11,9 +11,11 @@ import java.time.LocalDateTime;
 public class AlertProcessingService {
 
     private final AlertRepository alertRepository;
+    private final CacheService cacheService;
 
-    public AlertProcessingService(AlertRepository alertRepository) {
+    public AlertProcessingService(AlertRepository alertRepository, CacheService cacheService) {
         this.alertRepository = alertRepository;
+        this.cacheService = cacheService;
     }
 
     public Alert process(Transaction tx) {
@@ -40,6 +42,8 @@ public class AlertProcessingService {
         if (alert.getCreatedAt() == null) {
             alert.setCreatedAt(LocalDateTime.now());
         }
-        return alertRepository.save(alert);
+        Alert saved = alertRepository.save(alert);
+        cacheService.saveAlert(saved);
+        return saved;
     }
 }

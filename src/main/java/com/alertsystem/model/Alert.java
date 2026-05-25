@@ -5,14 +5,24 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+
 @Document(collection = "alerts")
 public class Alert {
     @Id
     private String id;
+    @NotBlank(message = "Transaction id is required")
     private String transactionId;
+    @NotBlank(message = "Account id is required")
     private String accountId;
+    @NotBlank(message = "Alert type is required")
     private String alertType;
+    @NotBlank(message = "Severity is required")
+    @Pattern(regexp = "LOW|MEDIUM|HIGH", message = "Severity must be LOW, MEDIUM, or HIGH")
     private String severity; // LOW, MEDIUM, HIGH
+    @NotNull(message = "Created at is required")
     private LocalDateTime createdAt;
     private boolean resolved;
 

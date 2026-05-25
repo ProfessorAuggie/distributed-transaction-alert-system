@@ -3,7 +3,6 @@ package com.alertsystem.service;
 import com.alertsystem.model.Alert;
 import com.alertsystem.model.Transaction;
 import com.alertsystem.repository.AlertRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,10 +30,6 @@ class AlertProcessingServiceTest {
 
     @Captor
     ArgumentCaptor<Alert> alertCaptor;
-
-    @BeforeEach
-    void setUp() {
-    }
 
     @Test
     void transactionAbove10000_generatesHighSeverityAlert() {
@@ -81,6 +76,7 @@ class AlertProcessingServiceTest {
         Alert saved = service.save(a);
 
         verify(alertRepository, times(1)).save(alertCaptor.capture());
+        verify(cacheService, times(1)).saveAlert(saved);
         Alert captured = alertCaptor.getValue();
         assertTrue(captured.isResolved());
         assertEquals(saved.isResolved(), true);

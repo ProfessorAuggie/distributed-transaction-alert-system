@@ -1,7 +1,6 @@
 package com.alertsystem.service;
 
 import com.alertsystem.model.Transaction;
-import com.alertsystem.model.Alert;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -25,23 +24,15 @@ public class TransactionIngestionService {
 
     @Async
     public void ingest(List<Transaction> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            return;
+        }
+
         List<CompletableFuture<Void>> futures = transactions.stream()
                 .map(tx -> CompletableFuture.supplyAsync(() -> alertProcessingService.process(tx), taskExecutor)
                         .thenAccept(alertProcessingService::save))
                 .collect(Collectors.toList());
 
-        // Optionally wait for all to complete in this async method
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-    }
-}
-package com.alertsystem.service;
-
-import com.alertsystem.model.Transaction;
-import org.springframework.stereotype.Service;
-
-@Service
-public class TransactionIngestionService {
-    public void ingest(Transaction transaction) {
-        // placeholder: ingesting transaction (e.g., from Kafka/HTTP)
     }
 }

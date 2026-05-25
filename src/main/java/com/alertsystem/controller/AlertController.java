@@ -4,28 +4,28 @@ import com.alertsystem.model.Alert;
 import com.alertsystem.model.Transaction;
 import com.alertsystem.repository.AlertRepository;
 import com.alertsystem.service.TransactionIngestionService;
-import com.alertsystem.service.AlertProcessingService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
 @RestController
+@Validated
 @RequestMapping("/api/alerts")
 public class AlertController {
 
     private final AlertRepository alertRepository;
     private final TransactionIngestionService ingestionService;
-    private final AlertProcessingService alertProcessingService;
 
     public AlertController(AlertRepository alertRepository,
-                           TransactionIngestionService ingestionService,
-                           AlertProcessingService alertProcessingService) {
+                           TransactionIngestionService ingestionService) {
         this.alertRepository = alertRepository;
         this.ingestionService = ingestionService;
-        this.alertProcessingService = alertProcessingService;
     }
 
     @GetMapping
@@ -34,28 +34,30 @@ public class AlertController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Alert> getById(@PathVariable String id) {
-        Optional<Alert> a = alertRepository.findById(id);
-        return a.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<Alert> getById(@PathVariable @NotBlank String id) {
+        Alert alert = alertRepository.findById(id)
+                .orElseThrow(() -> new com.alertsystem.exception.ResourceNotFoundException("Alert not found", "ALERT_NOT_FOUND"));
+        return ResponseEntity.ok(alert);
     }
 
     @GetMapping("/account/{accountId}")
-    public ResponseEntity<List<Alert>> getByAccount(@PathVariable String accountId) {
+    public ResponseEntity<List<Alert>> getByAccount(@PathVariable @NotBlank String accountId) {
         return ResponseEntity.ok(alertRepository.findByAccountId(accountId));
     }
 
     @PostMapping("/ingest")
-    public ResponseEntity<Void> ingestTransactions(@RequestBody List<Transaction> transactions) {
+    public ResponseEntity<Void> ingestTransactions(@RequestBody @NotEmpty List<@Valid Transaction> transactions) {
         ingestionService.ingest(transactions);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+        return ResponseEntity.accepted().build();
     }
 
     @PatchMapping("/{id}/resolve")
-    public ResponseEntity<Alert> resolveAlert(@PathVariable String id) {
-        Optional<Alert> o = alertRepository.findById(id);
-        if (o.isEmpty()) return ResponseEntity.notFound().build();
-        Alert a = o.get();
-        if (a.isResolved()) return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    public ResponseEntity<Alert> resolveAlert(@PathVariable @NotBlank String id) {
+        Alert a = alertRepository.findById(id)
+                .orElseThrow(() -> new com.alertsystem.exception.ResourceNotFoundException("Alert not found", "ALERT_NOT_FOUND"));
+        if (a.isResolved()) {
+            throw new com.alertsystem.exception.AlertAlreadyResolvedException("Alert already resolved", "ALERT_ALREADY_RESOLVED");
+        }
         a.setResolved(true);
         Alert saved = alertRepository.save(a);
         return ResponseEntity.ok(saved);
